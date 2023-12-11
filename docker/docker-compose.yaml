@@ -1,0 +1,97 @@
+version: "3"
+
+services:
+  rabbitmq:
+    image: rabbitmq:3.12.2-management
+    container_name: rabbitmq
+    restart: always
+    environment:
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=admin
+      - RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS=-rabbit log_levels [{connection,error},{default,error}] disk_free_limit 2147483648
+    ports:
+      - "15672:15672"
+      - "5672:5672"
+    volumes:
+      - rabbitmqdata:/var/lib/rabbitmq
+    hostname: rabbitmq
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 30s
+      timeout: 30s
+      retries: 5
+  identity:
+    build:
+      context: ../back
+      dockerfile: ../back/People.Identity/Dockerfile
+    restart: always
+    healthcheck:
+      test: curl --fail http://identity:5279/healthz || exit
+      interval: 30s
+      timeout: 30s
+      retries: 5
+      start_period: 15s
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+  corporate:
+    build:
+      context: ../back
+      dockerfile: ../back/People.Corporate/Dockerfile
+    restart: always
+    healthcheck:
+      test: curl --fail http://identity:5762/healthz || exit
+      interval: 30s
+      timeout: 30s
+      retries: 5
+      start_period: 15s
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+  points:
+    build:
+      context: ../back
+      dockerfile: ../back/People.Points/Dockerfile
+    restart: always
+    volumes:
+      - staticbackdata:/app
+    healthcheck:
+      test: curl --fail http://identity:5134/healthz || exit
+      interval: 30s
+      timeout: 30s
+      retries: 5
+      start_period: 15s
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+  nginx:
+    build:
+      context: ../nginx
+      dockerfile: ../nginx/Dockerfile
+    ports:
+      - 80:80
+      - 443:443
+    restart: always
+    volumes:
+      - letsencryptdata:/etc/letsencrypt
+      - certbotdata:/var/www/certbot
+    depends_on:
+      identity:
+        condition: service_healthy
+      corporate:
+        condition: service_healthy
+      points:
+        condition: service_healthy
+    command: '/bin/sh -c ''while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g "daemon off;"'''
+  certbot:
+    image: certbot/certbot:latest
+    volumes:
+      - letsencryptdata:/etc/letsencrypt
+      - certbotdata:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+
+volumes:
+  rabbitmqdata:
+  staticbackdata:
+  letsencryptdata:
+  certbotdata:
