@@ -1,5 +1,5 @@
 version: "3"
-name: "people-test"
+name: "people-dev"
 
 services:
   rabbitmq:
