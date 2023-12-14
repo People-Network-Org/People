@@ -11,6 +11,14 @@
 
 ### Dev
 
+Чтобы запустить с автоматическим билдом
+
+```sh
+docker-compose -f ./docker/docker-compose-dev.yaml up --force-recreate --build -d
+```
+
+Запуск через обычный билд и ап
+
 ```sh
 docker-compose -f ./docker/docker-compose-dev.yaml build
 docker-compose -f ./docker/docker-compose-dev.yaml up
