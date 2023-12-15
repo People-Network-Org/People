@@ -73,7 +73,7 @@ services:
       dockerfile: ../back/People.Points/Dockerfile
     restart: always
     volumes:
-      - staticbackdata:/app
+      - staticbackdata:/app/Storage
     healthcheck:
       test: curl --fail http://points:5134/healthz || exit
       interval: 30s
