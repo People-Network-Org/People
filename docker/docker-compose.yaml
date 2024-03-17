@@ -65,6 +65,9 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+  web:
+    build: ../front/web
+    restart: always
   nginx:
     build:
       context: ../nginx
@@ -77,6 +80,8 @@ services:
       - letsencryptdata:/etc/letsencrypt
       - certbotdata:/var/www/certbot
     depends_on:
+      web:
+        condition: service_started
       identity:
         condition: service_healthy
       corporate:
